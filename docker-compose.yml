@@ -1,9 +1,0 @@
-services:
-  m3u-proxy:
-    image: sonroyaalmerol/m3u-stream-merger-proxy:latest
-    ports:
-      - "8080:8080"
-    environment:
-      - M3U_URL_1=http://a9.lion.wine:80/live/1blu533468/Gxp61220/1277234.ts
-      - M3U_MAX_CONCURRENCY_1=9999
-      - SYNC_ON_BOOT=true
