@@ -13,4 +13,5 @@ services:
       - M3U_URL_1=http://a9.lion.wine:80/live/1blu533468/Gxp61220/1340988.ts
       # هذا الرقم يحدد كم مستخدم يمكنه المشاهدة من نفس الرابط
       - M3U_MAX_CONCURRENCY_1=9999999999
+
     restart: always
