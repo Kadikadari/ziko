@@ -1,9 +1,12 @@
 {
-  "channels": [
-    {
-      "id": "channel_1",
-      "name": "Lion TV 1",
-      "url": "http://hayattv.pepbox.xyz:2095/get.php?username=rmzn5058&password=rmzn.058&type=m3u_plus"
-    }
+
+  "server_info": {
+    "host": "http://hayattv.pepbox.xyz:2095",
+    "username": "rmzn5058",
+    "password": "rmzn.058"
+  },
+  "featured_channels": [
+    { "id": "ch1", "stream_id": "12345", "name": "بي إن سبورت 1" },
+    { "id": "ch2", "stream_id": "12346", "name": "بي إن سبورت 2" }
   ]
 }
