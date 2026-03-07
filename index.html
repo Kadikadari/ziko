@@ -1,49 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-    <title>Z-LIVE Manager</title>    <meta charset="UTF-8">
+    <title>Z-LIVE Pro Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
-        .card { background: #2a2a2a; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
-        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
-        button { width: 95%; padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; }
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #27ae60; text-align: center; border-bottom: 2px solid #27ae60; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #aaa; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; box-sizing: border-box; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-save { background: #27ae60; color: white; flex: 2; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn-search { background: #2980b9; color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-delete { background: #c0392b; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; }
+        #statusMsg { text-align: center; margin-top: 20px; font-weight: bold; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>إضافة مشترك جديد</h2>
-        <input type="text" id="deviceId" placeholder="كود الجهاز (Device ID)">
-        <input type="text" id="dns" placeholder="رابط السيرفر (DNS)">
-        <input type="text" id="user" placeholder="اسم المستخدم">
-        <input type="text" id="pass" placeholder="كلمة المرور">
-        <button onclick="saveUser()">حفظ وتفعيل المشترك</button>
-        <p id="msg"></p>
+
+<div class="container">
+    <h2>Z-LIVE Pro Admin</h2>
+
+    <div class="form-group">
+        <label>كود الجهاز (Device ID):</label>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="deviceId" placeholder="أدخل الكود">
+            <button class="btn-search" onclick="fetchUser()">بحث 🔍</button>
+        </div>
     </div>
 
-    <script>
-        // إعدادات مشروعك الخاصة
-        const firebaseConfig = {
-            apiKey: "AIzaSyAokNdzSSm9FWg9fbP3u4rtv0qHLHQNr9o",
-            databaseURL: "https://master-player-p2p-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <div class="form-group">
+        <label>نوع السيرفر:</label>
+        <select id="serverType" onchange="toggleFields()">
+            <option value="xtream">Extreme Codes (DNS/User/Pass)</option>
+            <option value="m3u">M3U Link (Direct URL)</option>
+            <option value="mac">MAC Portal (Stalker)</option>
+        </select>
+    </div>
 
-        function saveUser() {
-            const id = document.getElementById('deviceId').value;
-            if(!id) return alert("ضع كود الجهاز أولاً");
-            
-            db.ref('devices/' + id).set({
-                dns: document.getElementById('dns').value,
-                username: document.getElementById('user').value,
-                password: document.getElementById('pass').value,
-                status: "active"
-            }).then(() => {
-                document.getElementById('msg').innerText = "تم الحفظ والتفعيل بنجاح ✅";
-            });
-        }
-    </script>
+    <!-- خانات Xtream -->
+    <div id="xtreamFields">
+        <div class="form-group"><label>DNS:</label><input type="text" id="dns" placeholder="http://host.com:8080"></div>
+        <div class="form-group"><label>User:</label><input type="text" id="user"></div>
+        <div class="form-group"><label>Pass:</label><input type="text" id="pass"></div>
+    </div>
+
+    <!-- خانات M3U -->
+    <div id="m3uFields" class="hidden">
+        <div class="form-group"><label>M3U URL:</label><input type="text" id="m3uUrl" placeholder="http://server.com/get.php?auth=..."></div>
+    </div>
+
+    <!-- خانات MAC Portal -->
+    <div id="macFields" class="hidden">
+        <div class="form-group"><label>Portal URL:</label><input type="text" id="portalUrl" placeholder="http://portal.com/c/"></div>
+        <div class="form-group"><label>MAC Address (إختياري):</label><input type="text" id="customMac" placeholder="00:1A:79:..."></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-save" onclick="saveUser()">حفظ وتفعيل ✅</button>
+        <button class="btn-delete" onclick="deleteUser()">حذف ❌</button>
+    </div>
+
+    <p id="statusMsg"></p>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAokNdzSSm9FWg9fbP3u4rtv0qHLHQNr9o",
+        databaseURL: "https://master-player-p2p-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function toggleFields() {
+        const type = document.getElementById('serverType').value;
+        document.getElementById('xtreamFields').classList.toggle('hidden', type !== 'xtream');
+        document.getElementById('m3uFields').classList.toggle('hidden', type !== 'm3u');
+        document.getElementById('macFields').classList.toggle('hidden', type !== 'mac');
+    }
+
+    function fetchUser() {
+        const id = document.getElementById('deviceId').value.trim();
+        if (!id) return;
+        db.ref('devices/' + id).once('value').then(s => {
+            if (s.exists()) {
+                const d = s.val();
+                document.getElementById('serverType').value = d.serverType || 'xtream';
+                document.getElementById('dns').value = d.dns || '';
+                document.getElementById('user').value = d.username || '';
+                document.getElementById('pass').value = d.password || '';
+                document.getElementById('m3uUrl').value = d.m3uUrl || '';
+                document.getElementById('portalUrl').value = d.portalUrl || '';
+                document.getElementById('customMac').value = d.customMac || '';
+                toggleFields();
+                showMsg("تم جلب البيانات ✅", "#27ae60");
+            } else { showMsg("كود جديد غير مسجل", "#e67e22"); }
+        });
+    }
+
+    function saveUser() {
+        const id = document.getElementById('deviceId').value.trim();
+        if (!id) return alert("أدخل الكود");
+        const type = document.getElementById('serverType').value;
+        
+        db.ref('devices/' + id).set({
+            serverType: type,
+            dns: document.getElementById('dns').value,
+            username: document.getElementById('user').value,
+            password: document.getElementById('pass').value,
+            m3uUrl: document.getElementById('m3uUrl').value,
+            portalUrl: document.getElementById('portalUrl').value,
+            customMac: document.getElementById('customMac').value,
+            status: "active"
+        }).then(() => showMsg("تم الحفظ بنجاح ✅", "#27ae60"));
+    }
+
+    function deleteUser() {
+        const id = document.getElementById('deviceId').value.trim();
+        if (confirm("حذف؟")) db.ref('devices/' + id).remove().then(() => location.reload());
+    }
+
+    function showMsg(t, c) { const m = document.getElementById('statusMsg'); m.innerText = t; m.style.color = c; }
+</script>
 </body>
 </html>
