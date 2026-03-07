@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Z-LIVE Manager</title>    <meta charset="UTF-8">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        .card { background: #2a2a2a; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; }
+        button { width: 95%; padding: 10px; background: #27ae60; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>إضافة مشترك جديد</h2>
+        <input type="text" id="deviceId" placeholder="كود الجهاز (Device ID)">
+        <input type="text" id="dns" placeholder="رابط السيرفر (DNS)">
+        <input type="text" id="user" placeholder="اسم المستخدم">
+        <input type="text" id="pass" placeholder="كلمة المرور">
+        <button onclick="saveUser()">حفظ وتفعيل المشترك</button>
+        <p id="msg"></p>
+    </div>
+
+    <script>
+        // إعدادات مشروعك الخاصة
+        const firebaseConfig = {
+            apiKey: "AIzaSyAokNdzSSm9FWg9fbP3u4rtv0qHLHQNr9o",
+            databaseURL: "https://master-player-p2p-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function saveUser() {
+            const id = document.getElementById('deviceId').value;
+            if(!id) return alert("ضع كود الجهاز أولاً");
+            
+            db.ref('devices/' + id).set({
+                dns: document.getElementById('dns').value,
+                username: document.getElementById('user').value,
+                password: document.getElementById('pass').value,
+                status: "active"
+            }).then(() => {
+                document.getElementById('msg').innerText = "تم الحفظ والتفعيل بنجاح ✅";
+            });
+        }
+    </script>
+</body>
+</html>
