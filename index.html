@@ -141,7 +141,6 @@
 
         .hidden { display: none; }
 
-        /* تجميل شريط البحث */
         .search-box {
             display: flex;
             gap: 10px;
@@ -157,7 +156,6 @@
 <div class="container">
     <h2>Z-LIVE Pro Manager</h2>
 
-    <!-- قسم الجهاز -->
     <div class="form-group">
         <label>كود الجهاز المستهدف (Device ID):</label>
         <div class="search-box">
@@ -168,7 +166,6 @@
 
     <hr style="opacity: 0.1; margin: 30px 0;">
 
-    <!-- بيانات السيرفر الجديد -->
     <div class="form-group">
         <label>اسم السيرفر (ليظهر للمشترك):</label>
         <input type="text" id="serverName" placeholder="مثلاً: سيرفر VIP 1">
@@ -178,6 +175,7 @@
         <label>نوع الاشتراك:</label>
         <select id="serverType" onchange="toggleFields()">
             <option value="xtream">Xtream Codes (Host/User/Pass)</option>
+            <option value="stalker">Stalker Portal (URL/MAC)</option>
             <option value="m3u">M3U Link (Direct Link)</option>
         </select>
     </div>
@@ -200,6 +198,18 @@
         </div>
     </div>
 
+    <!-- خانات Stalker -->
+    <div id="stalkerFields" class="hidden">
+        <div class="form-group">
+            <label>رابط البورتال (URL):</label>
+            <input type="text" id="stalkerUrl" placeholder="http://server.com/c/">
+        </div>
+        <div class="form-group">
+            <label>عنوان الماك (MAC):</label>
+            <input type="text" id="mac" placeholder="00:1A:79:XX:XX:XX">
+        </div>
+    </div>
+
     <!-- خانات M3U -->
     <div id="m3uFields" class="hidden">
         <div class="form-group">
@@ -217,7 +227,6 @@
 </div>
 
 <script>
-    // تهيئة Firebase (تأكد من مطابقة بياناتك)
     const firebaseConfig = {
         apiKey: "AIzaSyAokNdzSSm9FWg9fbP3u4rtv0qHLHQNr9o",
         databaseURL: "https://master-player-p2p-default-rtdb.europe-west1.firebasedatabase.app"
@@ -230,6 +239,7 @@
     function toggleFields() {
         const type = document.getElementById('serverType').value;
         document.getElementById('xtreamFields').classList.toggle('hidden', type !== 'xtream');
+        document.getElementById('stalkerFields').classList.toggle('hidden', type !== 'stalker');
         document.getElementById('m3uFields').classList.toggle('hidden', type !== 'm3u');
     }
 
@@ -239,7 +249,7 @@
         
         db.ref('devices/' + id).once('value').then(s => {
             if (s.exists()) {
-                showMsg("الجهاز مسجل وحالته: " + (s.val().status || "نشط") + " ✅", "#00ff88");
+                showMsg("الجهاز مسجل ✅", "#00ff88");
             } else {
                 showMsg("جهاز جديد سيتم تفعيله عند الحفظ", "#00d4ff");
             }
@@ -255,30 +265,33 @@
 
         const type = document.getElementById('serverType').value;
         let serverData = {
-            name: serverName,
-            type: type === 'xtream' ? 'xtream_live' : 'm3u'
+            name: serverName
         };
 
         if (type === 'xtream') {
-            serverData.dns = document.getElementById('dns').value.trim();
+            serverData.type = "XTREAM";
+            serverData.url = document.getElementById('dns').value.trim();
             serverData.username = document.getElementById('user').value.trim();
             serverData.password = document.getElementById('pass').value.trim();
-            if(!serverData.dns || !serverData.username) return alert("أكمل بيانات Xtream");
+            if(!serverData.url || !serverData.username) return alert("أكمل بيانات Xtream");
+        } else if (type === 'stalker') {
+            serverData.type = "STALKER";
+            serverData.url = document.getElementById('stalkerUrl').value.trim();
+            serverData.mac = document.getElementById('mac').value.trim();
+            if(!serverData.url || !serverData.mac) return alert("أكمل بيانات Stalker");
         } else {
-            serverData.m3uUrl = document.getElementById('m3uUrl').value.trim();
-            if(!serverData.m3uUrl) return alert("أدخل رابط M3U");
+            // M3U - يعامل كـ XTREAM حالياً أو حسب دعم تطبيقك
+            serverData.type = "XTREAM"; 
+            serverData.url = document.getElementById('m3uUrl').value.trim();
+            if(!serverData.url) return alert("أدخل رابط M3U");
         }
 
-        // 1. تفعيل الجهاز
+        // حفظ في Firebase
         db.ref('devices/' + id + '/status').set('active');
-
-        // 2. إضافة السيرفر إلى قائمة السيرفرات
         db.ref('devices/' + id + '/servers').push(serverData).then(() => {
-            showMsg("تم الحفظ وإضافة السيرفر بنجاح ✅", "#00ff88");
-            
-            // 3. تصفير الخانات تلقائياً
+            showMsg("تم الحفظ بنجاح ✅", "#00ff88");
             resetFields();
-        }).catch(e => showMsg("خطأ في الحفظ: " + e.message, "#ff4444"));
+        }).catch(e => showMsg("خطأ: " + e.message, "#ff4444"));
     }
 
     function resetFields() {
@@ -286,17 +299,17 @@
         document.getElementById('dns').value = "";
         document.getElementById('user').value = "";
         document.getElementById('pass').value = "";
+        document.getElementById('stalkerUrl').value = "";
+        document.getElementById('mac').value = "";
         document.getElementById('m3uUrl').value = "";
-        // نترك ID الجهاز كما هو لسهولة إضافة سيرفر آخر لنفس الشخص
     }
 
     function deleteUser() {
         const id = document.getElementById('deviceId').value.trim();
         if (!id) return;
-        if (confirm("هل أنت متأكد من حذف الجهاز وكافة سيرفراته نهائياً؟")) {
+        if (confirm("هل أنت متأكد من حذف الجهاز نهائياً؟")) {
             db.ref('devices/' + id).remove().then(() => {
-                showMsg("تم حذف الجهاز بالكامل 🗑️", "#ff4444");
-                setTimeout(() => location.reload(), 2000);
+                showMsg("تم حذف الجهاز 🗑️", "#ff4444");
             });
         }
     }
@@ -305,7 +318,6 @@
         const m = document.getElementById('statusMsg');
         m.innerText = t;
         m.style.color = c;
-        m.style.background = 'rgba(0,0,0,0.2)';
     }
 </script>
 </body>
